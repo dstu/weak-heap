@@ -1,0 +1,6 @@
+[package]
+name = "weak-heap"
+version = "0.1.0"
+authors = ["Donald S. Black <trurl@freeshell.org>"]
+
+[dependencies]

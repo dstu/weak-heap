@@ -7,6 +7,9 @@ extern crate bit_vec;
 use bit_vec::BitVec;
 use std::cmp::Ord;
 use std::fmt;
+use std::mem;
+
+const USIZE_BITS: u32 = (mem::size_of::<usize>() * 8) as u32;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum EdgeValence {
@@ -42,6 +45,20 @@ impl Into<usize> for EdgeValence {
   }
 }
 
+fn lg_ceil(n: usize) -> usize {
+  if n == 0 {
+    return 1;
+  }
+  let trailing_zeros = n.trailing_zeros();
+  let leading_zeros = n.leading_zeros();
+  if trailing_zeros + leading_zeros + 1 == USIZE_BITS {
+    // Perfect power of 2.
+    trailing_zeros as usize
+  } else {
+    (USIZE_BITS - leading_zeros + 1) as usize
+  }
+}
+
 struct ValenceVec(BitVec);
 
 impl ValenceVec {
@@ -55,10 +72,6 @@ impl ValenceVec {
 
   fn get(&self, index: usize) -> Option<EdgeValence> {
     self.0.get(index).map(|b| b.into())
-  }
-
-  fn set(&mut self, index: usize, value: EdgeValence) {
-    self.0.set(index, value.into());
   }
 
   fn flip(&mut self, index: usize) {
@@ -93,6 +106,8 @@ impl fmt::Debug for ValenceVec {
 pub struct WeakHeap<T: fmt::Debug + Ord> {
   valences: ValenceVec,
   data: Vec<T>,
+  insert_buffer: Vec<T>,
+  max_insert_index: Option<usize>,
 }
 
 impl<T: fmt::Debug + Ord> WeakHeap<T> {
@@ -100,6 +115,8 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
     WeakHeap {
       valences: ValenceVec::new(),
       data: Vec::new(),
+      insert_buffer: Vec::new(),
+      max_insert_index: None,
     }
   }
 
@@ -107,45 +124,116 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
     WeakHeap {
       valences: ValenceVec::with_capacity(cap),
       data: Vec::with_capacity(cap),
+      insert_buffer: Vec::with_capacity(cap),
+      max_insert_index: None,
     }
   }
 
   pub fn len(&self) -> usize {
-    self.data.len()
+    self.data.len() + self.insert_buffer.len()
   }
 
   pub fn is_empty(&self) -> bool {
-    self.data.is_empty()
+    self.data.is_empty() && self.insert_buffer.is_empty()
   }
 
   pub fn peek(&self) -> Option<&T> {
-    self.data.first()
+    match (self.max_insert_index.and_then(|n| self.insert_buffer.get(n)),
+           self.data.first()) {
+      (Some(d1), Some(d2)) =>
+        if d1 > d2 {
+          Some(d1)
+        } else {
+          Some(d2)
+        },
+      (Some(d), None) => Some(d),
+      (None, Some(d)) => Some(d),
+      (None, None) => None,
+    }
   }
 
   pub fn push(&mut self, value: T) {
-    self.data.push(value);
-    self.valences.push(EdgeValence::Standard);
-    let leaf_index = self.data.len() - 1;
-    if leaf_index % 2 == 0 {
-      self.valences.set(leaf_index / 2, EdgeValence::Standard);
+    // println!("pushing: {:?}", value);
+    if self.insert_buffer.len() == 1 + lg_ceil(self.data.len()) {
+      // println!("flushing on input value: {:?}", value);
+      self.insert_buffer.push(value);
+      self.flush_insert_buffer();
+    } else {
+      self.max_insert_index = match self.max_insert_index {
+        None => Some(0),
+        Some(n) =>
+          if value > self.insert_buffer[n] {
+            Some(self.insert_buffer.len())
+          } else {
+            Some(n)
+          },
+      };
+      self.insert_buffer.push(value);
     }
-    self.sift_up(leaf_index);
+  }
+
+  pub fn flush_insert_buffer(&mut self) {
+    if self.insert_buffer.is_empty() {
+      return;
+    }
+    let mut right = self.data.len() + self.insert_buffer.len() - 2;
+    let mut left = usize::max(self.data.len(), right / 2);
+    for _ in 0..self.insert_buffer.len() {
+      self.valences.push(EdgeValence::Standard);
+    }
+    self.data.append(&mut self.insert_buffer);
+    self.max_insert_index = None;
+    while right > left + 1 {
+      left /= 2;
+      right /= 2;
+      for offset in left..(right + 1) {
+        self.sift_down(offset);
+      }
+    }
+    if left != 0 {
+      let ancestor_offset = self.distinguished_ancestor_offset(left);
+      self.sift_down(ancestor_offset);
+      self.sift_up(ancestor_offset);
+    }
+    if right != 0 {
+      let ancestor_offset = self.distinguished_ancestor_offset(right);
+      self.sift_down(ancestor_offset);
+      self.sift_up(ancestor_offset);
+    }
   }
 
   pub fn pop(&mut self) -> Option<T> {
-    match self.len() {
-      0 => None,
-      1 => {
+    if self.data.is_empty() {
+      if let Some(n) = self.max_insert_index {
+        let value = self.insert_buffer.swap_remove(n);
+        self.update_max_insert_index();
+        Some(value)
+      } else {
+        None
+      }
+    } else {
+      if let Some(n) = self.max_insert_index {
+        if self.insert_buffer[n] > *self.data.first().unwrap() {
+          let value = self.insert_buffer.swap_remove(n);
+          self.update_max_insert_index();
+          return Some(value)
+        }
+      }
+      if self.len() == 1 {
         self.valences.pop();
         self.data.pop()
-      },
-      _ => {
+      } else {
         let x = self.data.swap_remove(0);
         self.valences.pop();
         self.sift_down(0);
         Some(x)
-      },
+      }
     }
+  }
+
+  fn update_max_insert_index(&mut self) {
+    self.max_insert_index = self.insert_buffer.iter().enumerate()
+      .max_by(|&(_, ref a), &(_, ref b)| a.cmp(b)).map(|(index, _)| index);
   }
 
   fn child_offset(&self, offset: usize) -> usize {
@@ -208,7 +296,9 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
       return;
     }
     let mut next_child_offset = self.child_offset(child_offset);
-    while next_child_offset < self.len() {
+    while next_child_offset < self.data.len() {
+      // println!("sift_down: data.len = {}, valences.len = {}, child_offset = {}, next_child_offset = {}",
+      //          self.data.len(), self.valences.0.len(), child_offset, next_child_offset);
       child_offset = next_child_offset;
       next_child_offset = self.child_offset(child_offset);
     }

@@ -219,7 +219,7 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
           return Some(value)
         }
       }
-      if self.len() == 1 {
+      if self.data.len() == 1 {
         self.valences.pop();
         self.data.pop()
       } else {
@@ -292,7 +292,7 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
 
   fn sift_down(&mut self, offset: usize) {
     let mut child_offset = self.sibling_offset(offset);
-    if child_offset >= self.len() {
+    if child_offset >= self.data.len() {
       return;
     }
     let mut next_child_offset = self.child_offset(child_offset);

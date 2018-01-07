@@ -1,8 +1,11 @@
 #![feature(test)]
+#![feature(duration_from_micros)]
 
 extern crate bit_vec;
 #[cfg(test)] extern crate rand;
 #[cfg(test)] extern crate test;
+
+#[cfg(test)] mod bench;
 
 use bit_vec::BitVec;
 use std::cmp::Ord;
@@ -312,10 +315,13 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
 #[cfg(test)]
 mod tests {
   use super::WeakHeap;
-
   use rand::{Rng, SeedableRng, StdRng};
-  use std::collections::BinaryHeap;
-  use test::Bencher;
+
+  pub fn get_values(size: usize) -> Vec<i32> {
+    let seed: &[_] = &[1, 2, 3, 4];
+    let mut rng: StdRng = SeedableRng::from_seed(seed);
+    (0..size).map(|_| rng.gen::<i32>()).map(|x| x.into()).collect()
+  }
 
   #[test]
   fn instantiate_empty_heap() {
@@ -354,118 +360,22 @@ mod tests {
     assert!(t.is_empty());
   }
 
-  fn get_values(size: usize) -> Vec<i32> {
-    let seed: &[_] = &[1, 2, 3, 4];
-    let mut rng: StdRng = SeedableRng::from_seed(seed);
-    (0..size).map(|_| rng.gen::<i32>()).collect()
-  }
-
-  #[inline]
-  fn bench_weak(b: &mut Bencher, size: usize) {
-    let values = get_values(size);
+  #[test]
+  fn correct_ordering() {
+    let values = get_values(10000);
     let sorted = {
-      let mut v = values.clone();
-      v.sort_by(|x, y| y.cmp(x));
-      v
+      let mut sorted = values.clone();
+      sorted.sort_by(|x, y| y.cmp(x));
+      sorted
     };
-
-    b.iter(|| {
-      let mut heap = WeakHeap::new();
-      for v in &values {
-        heap.push(*v);
-        // println!("pushed onto heap: {}", *v);
-      }
-      let mut heap_sorted = Vec::new();
-      heap_sorted.reserve(heap.len());
-      loop {
-        match heap.pop() {
-          None => break,
-          Some(x) => {
-            // println!("popped from heap: {}", x);
-            heap_sorted.push(x);
-          },
-        }
-      }
-      assert_eq![heap_sorted, sorted];
-    });
+    let mut heap_sorted = Vec::new();
+    let mut heap = WeakHeap::new();
+    for x in &values {
+      heap.push(*x);
+    }
+    while let Some(x) = heap.pop() {
+      heap_sorted.push(x);
+    }
+    assert_eq!(heap_sorted, sorted);
   }
-
-  #[bench]
-  fn bench_weak_tiny(b: &mut Bencher) {
-    bench_weak(b, 10);
-  }
-
-  #[bench]
-  fn bench_weak_small(b: &mut Bencher) {
-    bench_weak(b, 100);
-  }
-
-  #[bench]
-  fn bench_weak_medium(b: &mut Bencher) {
-    bench_weak(b, 10000);
-  }
-
-  #[bench]
-  fn bench_weak_large(b: &mut Bencher) {
-      bench_weak(b, 100000);
-  }
-
-  // large and ludicrous tests commented out for now.
-
-  // #[bench]
-  // fn bench_weak_ludicrous(b: &mut Bencher) {
-  //     bench_weak(b, 10000000000);
-  // }
-
-  #[inline]
-  fn bench_builtin(b: &mut Bencher, size: usize) {
-    let values = get_values(size);
-    let sorted = {
-      let mut v = values.clone();
-      v.sort_by(|x, y| y.cmp(x));
-      v
-    };
-    b.iter(|| {
-      let mut heap = BinaryHeap::new();
-      for v in &values {
-        heap.push(*v);
-      }
-      let mut heap_sorted = Vec::new();
-      heap_sorted.reserve(heap.len());
-      loop {
-        match heap.pop() {
-          None => break,
-          Some(x) => heap_sorted.push(x),
-        }
-      }
-      assert_eq![heap_sorted, sorted];
-    });
-  }
-
-  #[bench]
-  fn bench_builtin_tiny(b: &mut Bencher) {
-    bench_builtin(b, 10);
-  }
-
-  #[bench]
-  fn bench_builtin_small(b: &mut Bencher) {
-    bench_builtin(b, 100);
-  }
-
-  #[bench]
-  fn bench_builtin_medium(b: &mut Bencher) {
-    bench_builtin(b, 10000);
-  }
-
-  #[bench]
-  fn bench_builtin_large(b: &mut Bencher) {
-      bench_builtin(b, 100000);
-  }
-
-  // ludicrous tests commented out for now.
-
-  // #[bench]
-  // fn bench_builtin_ludicrous(b: &mut Bencher) {
-  //     bench_builtin(b, 10000000000);
-  // }
 }

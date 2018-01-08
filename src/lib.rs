@@ -1,5 +1,6 @@
-#![feature(test)]
 #![feature(duration_from_micros)]
+#![feature(inclusive_range_syntax)]
+#![feature(test)]
 
 extern crate bit_vec;
 #[cfg(test)] extern crate rand;
@@ -48,17 +49,15 @@ impl Into<usize> for EdgeValence {
   }
 }
 
-fn lg_ceil(n: usize) -> usize {
-  if n == 0 {
-    return 1;
-  }
+fn lg_floor_1p(n: usize) -> usize {
+  let n = n + 1;
   let trailing_zeros = n.trailing_zeros();
   let leading_zeros = n.leading_zeros();
   if trailing_zeros + leading_zeros + 1 == USIZE_BITS {
     // Perfect power of 2.
     trailing_zeros as usize
   } else {
-    (USIZE_BITS - leading_zeros + 1) as usize
+    (USIZE_BITS - leading_zeros - 1) as usize
   }
 }
 
@@ -110,7 +109,7 @@ pub struct WeakHeap<T: fmt::Debug + Ord> {
   valences: ValenceVec,
   data: Vec<T>,
   insert_buffer: Vec<T>,
-  max_insert_index: Option<usize>,
+  max_in_buffer: bool,
 }
 
 impl<T: fmt::Debug + Ord> WeakHeap<T> {
@@ -119,7 +118,7 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
       valences: ValenceVec::new(),
       data: Vec::new(),
       insert_buffer: Vec::new(),
-      max_insert_index: None,
+      max_in_buffer: false,
     }
   }
 
@@ -128,7 +127,7 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
       valences: ValenceVec::with_capacity(cap),
       data: Vec::with_capacity(cap),
       insert_buffer: Vec::with_capacity(cap),
-      max_insert_index: None,
+      max_in_buffer: false,
     }
   }
 
@@ -141,102 +140,91 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
   }
 
   pub fn peek(&self) -> Option<&T> {
-    match (self.max_insert_index.and_then(|n| self.insert_buffer.get(n)),
-           self.data.first()) {
-      (Some(d1), Some(d2)) =>
-        if d1 > d2 {
-          Some(d1)
-        } else {
-          Some(d2)
-        },
-      (Some(d), None) => Some(d),
-      (None, Some(d)) => Some(d),
-      (None, None) => None,
+    if self.max_in_buffer {
+      self.insert_buffer.first()
+    } else {
+      self.data.first()
     }
   }
 
   pub fn push(&mut self, value: T) {
-    // println!("pushing: {:?}", value);
-    if self.insert_buffer.len() == 1 + lg_ceil(self.data.len()) {
-      // println!("flushing on input value: {:?}", value);
-      self.insert_buffer.push(value);
+    self.insert_buffer.push(value);
+    if self.insert_buffer.len() >= lg_floor_1p(self.data.len()) {
       self.flush_insert_buffer();
     } else {
-      self.max_insert_index = match self.max_insert_index {
-        None => Some(0),
-        Some(n) =>
-          if value > self.insert_buffer[n] {
-            Some(self.insert_buffer.len())
-          } else {
-            Some(n)
-          },
-      };
-      self.insert_buffer.push(value);
-    }
-  }
-
-  pub fn flush_insert_buffer(&mut self) {
-    if self.insert_buffer.is_empty() {
-      return;
-    }
-    let mut right = self.data.len() + self.insert_buffer.len() - 2;
-    let mut left = usize::max(self.data.len(), right / 2);
-    for _ in 0..self.insert_buffer.len() {
-      self.valences.push(EdgeValence::Standard);
-    }
-    self.data.append(&mut self.insert_buffer);
-    self.max_insert_index = None;
-    while right > left + 1 {
-      left /= 2;
-      right /= 2;
-      for offset in left..(right + 1) {
-        self.sift_down(offset);
+      let new_value_index = self.insert_buffer.len() - 1;
+      if self.insert_buffer[0] < self.insert_buffer[new_value_index] {
+        self.insert_buffer.swap(0, new_value_index);
       }
-    }
-    if left != 0 {
-      let ancestor_offset = self.distinguished_ancestor_offset(left);
-      self.sift_down(ancestor_offset);
-      self.sift_up(ancestor_offset);
-    }
-    if right != 0 {
-      let ancestor_offset = self.distinguished_ancestor_offset(right);
-      self.sift_down(ancestor_offset);
-      self.sift_up(ancestor_offset);
+      self.update_max_in_buffer();
     }
   }
 
   pub fn pop(&mut self) -> Option<T> {
-    if self.data.is_empty() {
-      if let Some(n) = self.max_insert_index {
-        let value = self.insert_buffer.swap_remove(n);
-        self.update_max_insert_index();
-        Some(value)
-      } else {
-        None
-      }
+    if self.max_in_buffer {
+      let value = self.insert_buffer.swap_remove(0);
+      self.move_buffer_max_to_front();
+      self.update_max_in_buffer();
+      Some(value)
+    } else if self.data.is_empty() {
+      None
     } else {
-      if let Some(n) = self.max_insert_index {
-        if self.insert_buffer[n] > *self.data.first().unwrap() {
-          let value = self.insert_buffer.swap_remove(n);
-          self.update_max_insert_index();
-          return Some(value)
-        }
-      }
       if self.data.len() == 1 {
         self.valences.pop();
-        self.data.pop()
+        let x = self.data.pop();
+        self.update_max_in_buffer();
+        x
       } else {
         let x = self.data.swap_remove(0);
         self.valences.pop();
         self.sift_down(0);
+        self.update_max_in_buffer();
         Some(x)
       }
     }
   }
 
-  fn update_max_insert_index(&mut self) {
-    self.max_insert_index = self.insert_buffer.iter().enumerate()
-      .max_by(|&(_, ref a), &(_, ref b)| a.cmp(b)).map(|(index, _)| index);
+  fn flush_insert_buffer(&mut self) {
+    let mut right = self.data.len() + self.insert_buffer.len() - 1;
+    let mut left = usize::max(self.data.len(), right / 2 + 1);
+    for _ in 0..self.insert_buffer.len() {
+      self.valences.push(EdgeValence::Standard);
+    }
+    self.data.append(&mut self.insert_buffer);
+    while right > left + 1 {
+      left /= 2;
+      right /= 2;
+      for offset in (left..=right).rev() {
+        self.sift_down(offset);
+      }
+    }
+    let mut offset = 0;
+    if right > 0 {
+      offset = self.distinguished_ancestor_offset(right);
+      self.sift_down(offset);
+    }
+    if left > 0 {
+      let ancestor = self.distinguished_ancestor_offset(left);
+      self.sift_down(ancestor);
+      self.sift_up(ancestor);
+    }
+    self.sift_up(offset);
+    self.max_in_buffer = false;
+  }
+
+  fn update_max_in_buffer(&mut self) {
+    self.max_in_buffer = match (self.data.first(), self.insert_buffer.first()) {
+      (Some(d1), Some(d2)) => d1 <= d2,
+      (None, Some(_)) => true,
+      _ => false,
+    };
+  }
+
+  fn move_buffer_max_to_front(&mut self) {
+    match self.insert_buffer.iter().enumerate().max_by_key(|&(_, value)| value).map(|(index, _)| index) {
+      Some(n) if n > 0 => self.insert_buffer.swap(n, 0),
+      _ => (),
+    }
   }
 
   fn child_offset(&self, offset: usize) -> usize {
@@ -279,16 +267,11 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
   }
 
   fn join(&mut self, a: usize, b: usize) -> bool {
-    // println!("join({}, {})", a, b);
-    // println!("join start: {:?}", self);
     if self.data[a] < self.data[b] {
-      // println!("join: swapping offsets {} and {}", a, b);
       self.data.swap(a, b);
       self.valences.flip(b);
-      // println!("join end: {:?}", self);
       false
     } else {
-      // println!("join end: {:?}", self);
       true
     }
   }
@@ -300,8 +283,6 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
     }
     let mut next_child_offset = self.child_offset(child_offset);
     while next_child_offset < self.data.len() {
-      // println!("sift_down: data.len = {}, valences.len = {}, child_offset = {}, next_child_offset = {}",
-      //          self.data.len(), self.valences.0.len(), child_offset, next_child_offset);
       child_offset = next_child_offset;
       next_child_offset = self.child_offset(child_offset);
     }
@@ -321,6 +302,23 @@ mod tests {
     let seed: &[_] = &[1, 2, 3, 4];
     let mut rng: StdRng = SeedableRng::from_seed(seed);
     (0..size).map(|_| rng.gen::<i32>()).map(|x| x.into()).collect()
+  }
+
+  #[test]
+  fn lg_floor_1p() {
+    assert_eq!(0, super::lg_floor_1p(0));
+    assert_eq!(1, super::lg_floor_1p(1));
+    assert_eq!(1, super::lg_floor_1p(2));
+    assert_eq!(2, super::lg_floor_1p(3));
+    assert_eq!(2, super::lg_floor_1p(4));
+    assert_eq!(2, super::lg_floor_1p(5));
+    assert_eq!(2, super::lg_floor_1p(6));
+    assert_eq!(3, super::lg_floor_1p(7));
+    assert_eq!(3, super::lg_floor_1p(8));
+    assert_eq!(3, super::lg_floor_1p(9));
+    assert_eq!(3, super::lg_floor_1p(10));
+    assert_eq!(5, super::lg_floor_1p(60));
+    assert_eq!(6, super::lg_floor_1p(63));
   }
 
   #[test]
@@ -348,13 +346,11 @@ mod tests {
     let values = [0usize, 1, 2, 3, 4, 5, 6];
     for x in &values {
       t.push(*x);
-      // println!("after push: {:?}", t);
       assert_eq!(t.peek().map(|n| *n), Some(*x));
     }
     assert_eq!(values.len(), t.len());
     let mut values_iter = values.iter().rev();
     while let Some(x) = t.pop() {
-      // println!("after pop: {:?}", t);
       assert_eq!(x, *values_iter.next().unwrap());
     }
     assert!(t.is_empty());
@@ -362,7 +358,7 @@ mod tests {
 
   #[test]
   fn correct_ordering() {
-    let values = get_values(10000);
+    let values = get_values(60);
     let sorted = {
       let mut sorted = values.clone();
       sorted.sort_by(|x, y| y.cmp(x));

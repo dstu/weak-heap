@@ -122,15 +122,46 @@ macro_rules! do_bench {
         all_counts.push(counts);
         assert_eq![heap_sorted, sorted];
       });
-      let total_counts = all_counts.into_iter().fold(ComparisonCounts::default(), |acc, x| acc + x);
-      println!("do_bench({}, {}) partial_ord {:.2}, ord {:.2}, eq {:.2}, ne {:.2}",
-               stringify!($heap_factory), size,
-               (total_counts.partial_ord as f32) / ((size * iterations) as f32),
-               (total_counts.ord as f32) / ((size * iterations) as f32),
-               (total_counts.eq as f32) / ((size * iterations) as f32),
-               (total_counts.neq as f32) / ((size * iterations) as f32));
-      total_counts
-    })
+    let total_counts = all_counts.into_iter().fold(
+      ComparisonCounts::default(), |acc, x| acc + x);
+    println!("\ndo_bench({}, {}) partial_ord {:.2}, ord {:.2}, eq {:.2}, ne {:.2}",
+             stringify!($heap_factory), size,
+             (total_counts.partial_ord as f32) / ((size * iterations) as f32),
+             (total_counts.ord as f32) / ((size * iterations) as f32),
+             (total_counts.eq as f32) / ((size * iterations) as f32),
+             (total_counts.neq as f32) / ((size * iterations) as f32));
+    total_counts
+  })
+}
+
+macro_rules! do_bench_inserts {
+  ($bencher: ident, $heap_factory: expr, $size: expr) => ({
+    let size: usize = $size;
+    let values: Vec<ComparisonCountedI32> =
+      tests::get_values(size).into_iter().map(|x| x.into()).collect();
+
+    let mut all_counts = Vec::new();
+    let mut iterations = 0;
+    $bencher.iter(|| {
+      iterations += 1;
+      let mut counts = ComparisonCounts::now();
+      let mut heap = $heap_factory();
+      for v in &values {
+        heap.push(*v);
+      }
+      counts.take_difference();
+      all_counts.push(counts);
+    });
+    let total_counts = all_counts.into_iter().fold(
+      ComparisonCounts::default(), |acc, x| acc + x);
+    println!("\ndo_bench_inserts({}, {}) partial_ord {:.2}, ord {:.2}, eq {:.2}, ne {:.2}",
+             stringify!($heap_factory), size,
+             (total_counts.partial_ord as f32) / ((size * iterations) as f32),
+             (total_counts.ord as f32) / ((size * iterations) as f32),
+             (total_counts.eq as f32) / ((size * iterations) as f32),
+             (total_counts.neq as f32) / ((size * iterations) as f32));
+    total_counts
+  })
 }
 
 #[bench]
@@ -143,9 +174,24 @@ fn bench_01_weak_small(b: &mut Bencher) {
   do_bench!(b, WeakHeap::new, 100);
 }
 
+// #[bench]
+// fn bench_02_weak_medium(b: &mut Bencher) {
+//   do_bench!(b, WeakHeap::new, 10000);
+// }
+
 #[bench]
-fn bench_02_weak_medium(b: &mut Bencher) {
-  do_bench!(b, WeakHeap::new, 10000);
+fn bench_inserts_00_weak_tiny(b: &mut Bencher) {
+  do_bench_inserts!(b, WeakHeap::new, 10);
+}
+
+#[bench]
+fn bench_inserts_01_weak_small(b: &mut Bencher) {
+  do_bench_inserts!(b, WeakHeap::new, 100);
+}
+
+#[bench]
+fn bench_inserts_02_weak_medium(b: &mut Bencher) {
+  do_bench_inserts!(b, WeakHeap::new, 10000);
 }
 
 // #[bench]
@@ -170,15 +216,30 @@ fn bench_01_builtin_small(b: &mut Bencher) {
   do_bench!(b, BinaryHeap::new, 100);
 }
 
+// #[bench]
+// fn bench_02_builtin_medium(b: &mut Bencher) {
+//   do_bench!(b, BinaryHeap::new, 10000);
+// }
+
 #[bench]
-fn bench_02_builtin_medium(b: &mut Bencher) {
-  do_bench!(b, BinaryHeap::new, 10000);
+fn bench_inserts_00_binary_tiny(b: &mut Bencher) {
+  do_bench_inserts!(b, BinaryHeap::new, 10);
 }
 
-// #[bench]
-// fn bench_03_builtin_large(b: &mut Bencher) {
-//   bench_builtin(b, 100000);
-// }
+#[bench]
+fn bench_inserts_01_binary_small(b: &mut Bencher) {
+  do_bench_inserts!(b, BinaryHeap::new, 100);
+}
+
+#[bench]
+fn bench_inserts_02_binary_medium(b: &mut Bencher) {
+  do_bench_inserts!(b, BinaryHeap::new, 10000);
+}
+
+#[bench]
+fn bench_03_builtin_large(b: &mut Bencher) {
+  do_bench_inserts!(b, BinaryHeap::new, 10000);
+}
 
 // ludicrous tests commented out for now.
 

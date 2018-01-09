@@ -156,7 +156,8 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
       if self.insert_buffer[0] < self.insert_buffer[new_value_index] {
         self.insert_buffer.swap(0, new_value_index);
       }
-      self.update_max_in_buffer();
+      self.max_in_buffer = self.data.first().map(|x| *x < self.insert_buffer[0])
+        .unwrap_or(true);
     }
   }
 

@@ -77,6 +77,10 @@ impl ValenceVec {
     self.0.get(index).map(|b| b.into())
   }
 
+  fn set(&mut self, index: usize, value: EdgeValence) {
+    self.0.set(index, value.into());
+  }
+
   fn flip(&mut self, index: usize) {
     let value = self.0.get(index).unwrap();
     self.0.set(index, !value);
@@ -84,10 +88,6 @@ impl ValenceVec {
 
   fn push(&mut self, value: EdgeValence) {
     self.0.grow(1, value.into());
-  }
-
-  fn pop(&mut self) -> Option<EdgeValence> {
-    self.0.pop().map(|b| b.into())
   }
 }
 
@@ -109,8 +109,6 @@ impl fmt::Debug for ValenceVec {
 pub struct WeakHeap<T: fmt::Debug + Ord> {
   valences: ValenceVec,
   data: Vec<T>,
-  insert_buffer: Vec<T>,
-  max_in_buffer: bool,
 }
 
 impl<T: fmt::Debug + Ord> WeakHeap<T> {
@@ -118,8 +116,6 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
     WeakHeap {
       valences: ValenceVec::new(),
       data: Vec::new(),
-      insert_buffer: Vec::new(),
-      max_in_buffer: false,
     }
   }
 
@@ -127,105 +123,38 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
     WeakHeap {
       valences: ValenceVec::with_capacity(cap),
       data: Vec::with_capacity(cap),
-      insert_buffer: Vec::with_capacity(cap),
-      max_in_buffer: false,
     }
   }
 
   pub fn len(&self) -> usize {
-    self.data.len() + self.insert_buffer.len()
+    self.data.len()
   }
 
   pub fn is_empty(&self) -> bool {
-    self.data.is_empty() && self.insert_buffer.is_empty()
+    self.data.is_empty()
   }
 
   pub fn peek(&self) -> Option<&T> {
-    if self.max_in_buffer {
-      self.insert_buffer.first()
-    } else {
-      self.data.first()
-    }
+    self.data.first()
   }
 
   pub fn push(&mut self, value: T) {
-    self.insert_buffer.push(value);
-    if self.insert_buffer.len() >= lg_floor_1p(self.data.len()) {
-      self.flush_insert_buffer();
-    } else {
-      let new_value_index = self.insert_buffer.len() - 1;
-      if self.insert_buffer[0] < self.insert_buffer[new_value_index] {
-        self.insert_buffer.swap(0, new_value_index);
-      }
-      self.max_in_buffer = self.data.first().map(|x| *x < self.insert_buffer[0])
-        .unwrap_or(true);
+    let offset = self.len();
+    self.data.push(value);
+    self.valences.push(EdgeValence::Standard);
+    if offset % 2 == 0 {
+      self.valences.set(offset / 2, EdgeValence::Standard);
     }
+    self.sift_up(offset);
   }
 
   pub fn pop(&mut self) -> Option<T> {
-    if self.max_in_buffer {
-      let value = self.insert_buffer.swap_remove(0);
-      self.move_buffer_max_to_front();
-      self.update_max_in_buffer();
-      Some(value)
-    } else if self.data.is_empty() {
+    if self.is_empty() {
       None
     } else {
-      if self.data.len() == 1 {
-        self.valences.pop();
-        let x = self.data.pop();
-        self.update_max_in_buffer();
-        x
-      } else {
-        let x = self.data.swap_remove(0);
-        self.valences.pop();
-        self.sift_down(0);
-        self.update_max_in_buffer();
-        Some(x)
-      }
-    }
-  }
-
-  fn flush_insert_buffer(&mut self) {
-    let mut right = self.data.len() + self.insert_buffer.len() - 1;
-    let mut left = usize::max(self.data.len(), right / 2 + 1);
-    for _ in 0..self.insert_buffer.len() {
-      self.valences.push(EdgeValence::Standard);
-    }
-    self.data.append(&mut self.insert_buffer);
-    while right > left + 1 {
-      left /= 2;
-      right /= 2;
-      for offset in (left..=right).rev() {
-        self.sift_down(offset);
-      }
-    }
-    let mut offset = 0;
-    if right > 0 {
-      offset = self.distinguished_ancestor_offset(right);
-      self.sift_down(offset);
-    }
-    if left > 0 {
-      let ancestor = self.distinguished_ancestor_offset(left);
-      self.sift_down(ancestor);
-      self.sift_up(ancestor);
-    }
-    self.sift_up(offset);
-    self.max_in_buffer = false;
-  }
-
-  fn update_max_in_buffer(&mut self) {
-    self.max_in_buffer = match (self.data.first(), self.insert_buffer.first()) {
-      (Some(d1), Some(d2)) => d1 <= d2,
-      (None, Some(_)) => true,
-      _ => false,
-    };
-  }
-
-  fn move_buffer_max_to_front(&mut self) {
-    match self.insert_buffer.iter().enumerate().max_by_key(|&(_, value)| value).map(|(index, _)| index) {
-      Some(n) if n > 0 => self.insert_buffer.swap(n, 0),
-      _ => (),
+      let result = Some(self.data.swap_remove(0));
+      self.sift_down(0);
+      result
     }
   }
 

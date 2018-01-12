@@ -1,4 +1,5 @@
 #![feature(duration_from_micros)]
+#![feature(swap_nonoverlapping)]
 #![feature(test)]
 
 #[cfg(test)] extern crate rand;
@@ -60,7 +61,7 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
       let result = Some(self.data.swap_remove(0).value);
       if !self.is_empty() {
         unsafe { self.data.get_unchecked_mut(0).valence = false; }
-        self.sift_down();
+        self.sift_down(1);
       }
       result
     }
@@ -104,27 +105,20 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
     }
   }
 
-  fn sift_down(&mut self) {
-    let mut child_offset = 1;
+  fn sift_down(&mut self, child_offset: usize) {
     if child_offset >= self.data.len() {
       return;
     }
-    let mut next_child_offset = self.child_offset(child_offset);
-    while next_child_offset < self.data.len() {
-      child_offset = next_child_offset;
-      next_child_offset = self.child_offset(child_offset);
-    }
-    while child_offset > 0 {
-      if unsafe { self.data.get_unchecked(0).value < self.data.get_unchecked(child_offset).value } {
-        self.data.swap(0, child_offset);
-        // Swap valences back, reversing child offset valence.
-        unsafe {
-          let new_child_valence = !self.data.get_unchecked(0).valence;
-          self.data.get_unchecked_mut(0).valence = self.data.get_unchecked(child_offset).valence;
-          self.data.get_unchecked_mut(child_offset).valence = new_child_valence;
-        }
+    let next_child_offset = self.child_offset(child_offset);
+    self.sift_down(next_child_offset);
+    unsafe {
+      let head: *mut T = &mut self.data.get_unchecked_mut(0).value;
+      let child: *mut T = &mut self.data.get_unchecked_mut(child_offset).value;
+      if *head < *child {
+        ptr::swap_nonoverlapping(head, child, 1);
+        self.data.get_unchecked_mut(child_offset).valence =
+          !self.data.get_unchecked(child_offset).valence;
       }
-      child_offset /= 2;
     }
   }
 }

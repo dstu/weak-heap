@@ -1,5 +1,4 @@
 #![feature(duration_from_micros)]
-#![feature(inclusive_range_syntax)]
 #![feature(test)]
 
 #[cfg(test)] extern crate rand;
@@ -12,22 +11,25 @@ use std::fmt;
 use std::ptr;
 
 #[derive(Debug)]
+struct HeapEntry<T: fmt::Debug> {
+  valence: bool,
+  value: T,
+}
+
+#[derive(Debug)]
 pub struct WeakHeap<T: fmt::Debug + Ord> {
-  valences: Vec<bool>,
-  data: Vec<T>,
+  data: Vec<HeapEntry<T>>,
 }
 
 impl<T: fmt::Debug + Ord> WeakHeap<T> {
   pub fn new() -> Self {
     WeakHeap {
-      valences: Vec::new(),
       data: Vec::new(),
     }
   }
 
   pub fn with_capacity(cap: usize) -> Self {
     WeakHeap {
-      valences: Vec::with_capacity(cap),
       data: Vec::with_capacity(cap),
     }
   }
@@ -41,14 +43,13 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
   }
 
   pub fn peek(&self) -> Option<&T> {
-    self.data.first()
+    self.data.first().map(|x| &x.value)
   }
 
   pub fn push(&mut self, value: T) {
     let offset = self.len();
-    self.data.push(value);
-    self.valences.push(false);
-    self.valences[offset / 2] = self.valences[offset / 2] || offset % 2 == 0;
+    self.data.push(HeapEntry { valence: false, value: value, });
+    unsafe { self.data.get_unchecked_mut(offset / 2).valence |= offset % 2 == 0; }
     self.sift_up(offset);
   }
 
@@ -56,58 +57,55 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
     if self.is_empty() {
       None
     } else {
-      let result = Some(self.data.swap_remove(0));
-      self.sift_down(0);
+      let result = Some(self.data.swap_remove(0).value);
+      if !self.is_empty() {
+        unsafe { self.data.get_unchecked_mut(0).valence = false; }
+        self.sift_down();
+      }
       result
     }
   }
 
   fn child_offset(&self, offset: usize) -> usize {
     offset.checked_mul(2)
-      .and_then(|n| n.checked_add(self.valences[offset] as usize))
+      .and_then(|n| n.checked_add(unsafe { self.data.get_unchecked(offset).valence } as usize))
       .expect("child offset computation overflow")
   }
 
-  fn sibling_offset(&self, offset: usize) -> usize {
-    offset.checked_mul(2)
-      .and_then(|n| n.checked_add(1 - self.valences[offset] as usize))
-      .expect("sibling computation overflow")
-  }
-
   fn distinguished_ancestor_offset(&self, mut offset: usize) -> usize {
-    if offset == 0 {
-      panic!("root has no ancestor");
-    } else {
-      let mut parent_offset = offset / 2;
-      let mut parent_valence = self.valences[parent_offset];
-      while (offset & 1) == (parent_valence as usize) {
-        offset = parent_offset;
-        parent_offset /= 2;
-        parent_valence = self.valences[parent_offset];
-      }
-      parent_offset
+    debug_assert!(offset > 0);
+    let mut parent_offset = offset / 2;
+    let mut parent_valence = unsafe { self.data.get_unchecked(parent_offset).valence };
+    while (offset & 1) == (parent_valence as usize) {
+      offset = parent_offset;
+      parent_offset /= 2;
+      parent_valence = unsafe { self.data.get_unchecked(parent_offset).valence };
     }
+    parent_offset
   }
 
   fn sift_up(&mut self, mut offset: usize) {
     unsafe {
-      let element = ptr::read(&self.data[offset]);
+      let element = ptr::read(&self.data.get_unchecked(offset).value);
       let mut ancestor_offset;
       while offset > 0 {
         ancestor_offset = self.distinguished_ancestor_offset(offset);
-        if self.data[ancestor_offset] >= element {
+        if self.data.get_unchecked(ancestor_offset).value >= element {
           break;
         }
-        ptr::copy_nonoverlapping(&self.data[ancestor_offset], &mut self.data[offset], 1);
-        self.valences[offset] = !self.valences[offset];
+        ptr::copy_nonoverlapping(
+          &self.data.get_unchecked(ancestor_offset).value,
+          &mut self.data.get_unchecked_mut(offset).value,
+          1);
+        self.data.get_unchecked_mut(offset).valence = !self.data.get_unchecked(offset).valence;
         offset = ancestor_offset;
       }
-      ptr::write(&mut self.data[offset], element);
+      ptr::write(&mut self.data.get_unchecked_mut(offset).value, element);
     }
   }
 
-  fn sift_down(&mut self, offset: usize) {
-    let mut child_offset = self.sibling_offset(offset);
+  fn sift_down(&mut self) {
+    let mut child_offset = 1;
     if child_offset >= self.data.len() {
       return;
     }
@@ -116,10 +114,15 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
       child_offset = next_child_offset;
       next_child_offset = self.child_offset(child_offset);
     }
-    while child_offset != offset {
-      if self.data[offset] < self.data[child_offset] {
-        self.data.swap(offset, child_offset);
-        self.valences[child_offset] = !self.valences[child_offset];
+    while child_offset > 0 {
+      if unsafe { self.data.get_unchecked(0).value < self.data.get_unchecked(child_offset).value } {
+        self.data.swap(0, child_offset);
+        // Swap valences back, reversing child offset valence.
+        unsafe {
+          let new_child_valence = !self.data.get_unchecked(0).valence;
+          self.data.get_unchecked_mut(0).valence = self.data.get_unchecked(child_offset).valence;
+          self.data.get_unchecked_mut(child_offset).valence = new_child_valence;
+        }
       }
       child_offset /= 2;
     }

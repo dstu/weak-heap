@@ -12,6 +12,7 @@ use bit_vec::BitVec;
 use std::cmp::Ord;
 use std::fmt;
 use std::mem;
+use std::ptr;
 
 const USIZE_BITS: u32 = (mem::size_of::<usize>() * 8) as u32;
 
@@ -258,22 +259,19 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
   }
 
   fn sift_up(&mut self, mut offset: usize) {
-    while offset > 0 {
-      let ancestor_offset = self.distinguished_ancestor_offset(offset);
-      if self.join(ancestor_offset, offset) {
-        break;
+    unsafe {
+      let element = ptr::read(&self.data[offset]);
+      let mut ancestor_offset;
+      while offset > 0 {
+        ancestor_offset = self.distinguished_ancestor_offset(offset);
+        if self.data[ancestor_offset] >= element {
+          break;
+        }
+        ptr::copy_nonoverlapping(&self.data[ancestor_offset], &mut self.data[offset], 1);
+        self.valences.flip(offset);
+        offset = ancestor_offset;
       }
-      offset = ancestor_offset;
-    }
-  }
-
-  fn join(&mut self, a: usize, b: usize) -> bool {
-    if self.data[a] < self.data[b] {
-      self.data.swap(a, b);
-      self.valences.flip(b);
-      false
-    } else {
-      true
+      ptr::write(&mut self.data[offset], element);
     }
   }
 
@@ -288,7 +286,10 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
       next_child_offset = self.child_offset(child_offset);
     }
     while child_offset != offset {
-      self.join(offset, child_offset);
+      if self.data[offset] < self.data[child_offset] {
+        self.data.swap(offset, child_offset);
+        self.valences.flip(child_offset);
+      }
       child_offset /= 2;
     }
   }

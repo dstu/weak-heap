@@ -8,6 +8,11 @@ use std::ops::Add;
 use std::sync::atomic;
 use test::Bencher;
 
+static TINY_SIZES: &[usize] = &[1, 2, 7, 8, 9, 10, 20, 30, 31, 32, 33];
+static SMALL_SIZES: &[usize] = &[100, 127, 128, 129, 150, 200, 254, 255, 256, 257, 258];
+static MEDIUM_SIZES: &[usize] = &[10000, 20000, 32767, 32768, 32769, 50000];
+static LARGE_SIZES: &[usize] = &[1048575, 1048576, 1048577];
+
 #[derive(Clone, Copy, Debug)]
 struct ComparisonCountedI32(i32);
 
@@ -164,86 +169,210 @@ macro_rules! do_bench_inserts {
   })
 }
 
+macro_rules! do_bench_removals {
+  ($bencher: ident, $heap_factory: expr, $size: expr) => ({
+    let size: usize = $size;
+    let values: Vec<ComparisonCountedI32> =
+      tests::get_values(size).into_iter().map(|x| x.into()).collect();
+    let sorted = {
+      let mut v = values.clone();
+      v.sort_by(|x, y| y.cmp(x));
+      v
+    };
+
+    let mut all_counts = Vec::new();
+    let mut iterations = 0;
+    $bencher.iter(|| {
+      iterations += 1;
+      let mut heap = $heap_factory();
+      for v in &values {
+        heap.push(*v);
+      }
+      let mut receptacle = Vec::with_capacity(size);
+      let mut counts = ComparisonCounts::now();
+      while let Some(x) = heap.pop() {
+        receptacle.push(x);
+      }
+      counts.take_difference();
+      assert_eq!(receptacle, sorted);
+      all_counts.push(counts);
+    });
+    let total_counts = all_counts.into_iter().fold(
+      ComparisonCounts::default(), |acc, x| acc + x);
+    println!("\ndo_bench_removals({}, {}) partial_ord {:.2}, ord {:.2}, eq {:.2}, ne {:.2}",
+             stringify!($heap_factory), size,
+             (total_counts.partial_ord as f32) / ((size * iterations) as f32),
+             (total_counts.ord as f32) / ((size * iterations) as f32),
+             (total_counts.eq as f32) / ((size * iterations) as f32),
+             (total_counts.neq as f32) / ((size * iterations) as f32));
+    total_counts
+  })
+}
+
 #[bench]
 fn bench_00_weak_tiny(b: &mut Bencher) {
-  do_bench!(b, WeakHeap::new, 10);
+  for size in TINY_SIZES {
+    do_bench!(b, WeakHeap::new, *size);
+  }
 }
 
 #[bench]
 fn bench_01_weak_small(b: &mut Bencher) {
-  do_bench!(b, WeakHeap::new, 100);
+  for size in SMALL_SIZES {
+    do_bench!(b, WeakHeap::new, *size);
+  }
 }
 
-// #[bench]
-// fn bench_02_weak_medium(b: &mut Bencher) {
-//   do_bench!(b, WeakHeap::new, 10000);
-// }
+#[bench]
+fn bench_02_weak_medium(b: &mut Bencher) {
+  for size in MEDIUM_SIZES {
+    do_bench!(b, WeakHeap::new, *size);
+  }
+}
+
+#[bench]
+fn bench_03_weak_large(b: &mut Bencher) {
+  for size in LARGE_SIZES {
+    do_bench!(b, WeakHeap::new, *size);
+  }
+}
 
 #[bench]
 fn bench_inserts_00_weak_tiny(b: &mut Bencher) {
-  do_bench_inserts!(b, WeakHeap::new, 10);
+  for size in TINY_SIZES {
+    do_bench_inserts!(b, WeakHeap::new, *size);
+  }
 }
 
 #[bench]
 fn bench_inserts_01_weak_small(b: &mut Bencher) {
-  do_bench_inserts!(b, WeakHeap::new, 100);
+  for size in SMALL_SIZES {
+    do_bench_inserts!(b, WeakHeap::new, *size);
+  }
 }
 
 #[bench]
 fn bench_inserts_02_weak_medium(b: &mut Bencher) {
-  do_bench_inserts!(b, WeakHeap::new, 10000);
+  for size in MEDIUM_SIZES {
+    do_bench_inserts!(b, WeakHeap::new, *size);
+  }
 }
 
-// #[bench]
-// fn bench_03_weak_large(b: &mut Bencher) {
-//   bench_weak(b, 100000);
-// }
+#[bench]
+fn bench_inserts_03_weak_large(b: &mut Bencher) {
+  for size in LARGE_SIZES {
+    do_bench_inserts!(b, WeakHeap::new, *size);
+  }
+}
 
-// ludicrous tests commented out for now.
+#[bench]
+fn bench_removals_00_weak_tiny(b: &mut Bencher) {
+  for size in TINY_SIZES {
+    do_bench_removals!(b, WeakHeap::new, *size);
+  }
+}
 
-// #[bench]
-// fn bench_04_weak_ludicrous(b: &mut Bencher) {
-//   bench_weak(b, 10000000000);
-// }
+#[bench]
+fn bench_removals_01_weak_small(b: &mut Bencher) {
+  for size in SMALL_SIZES {
+    do_bench_removals!(b, WeakHeap::new, *size);
+  }
+}
+
+#[bench]
+fn bench_removals_02_weak_medium(b: &mut Bencher) {
+  for size in MEDIUM_SIZES {
+    do_bench_removals!(b, WeakHeap::new, *size);
+  }
+}
+
+#[bench]
+fn bench_removals_03_weak_large(b: &mut Bencher) {
+  for size in LARGE_SIZES {
+    do_bench_removals!(b, WeakHeap::new, *size);
+  }
+}
 
 #[bench]
 fn bench_00_builtin_tiny(b: &mut Bencher) {
-  do_bench!(b, BinaryHeap::new, 10);
+  for size in TINY_SIZES {
+    do_bench!(b, BinaryHeap::new, *size);
+  }
 }
 
 #[bench]
 fn bench_01_builtin_small(b: &mut Bencher) {
-  do_bench!(b, BinaryHeap::new, 100);
-}
-
-// #[bench]
-// fn bench_02_builtin_medium(b: &mut Bencher) {
-//   do_bench!(b, BinaryHeap::new, 10000);
-// }
-
-#[bench]
-fn bench_inserts_00_binary_tiny(b: &mut Bencher) {
-  do_bench_inserts!(b, BinaryHeap::new, 10);
+  for size in SMALL_SIZES {
+    do_bench!(b, BinaryHeap::new, *size);
+  }
 }
 
 #[bench]
-fn bench_inserts_01_binary_small(b: &mut Bencher) {
-  do_bench_inserts!(b, BinaryHeap::new, 100);
-}
-
-#[bench]
-fn bench_inserts_02_binary_medium(b: &mut Bencher) {
-  do_bench_inserts!(b, BinaryHeap::new, 10000);
+fn bench_02_builtin_medium(b: &mut Bencher) {
+  for size in MEDIUM_SIZES {
+    do_bench!(b, BinaryHeap::new, *size);
+  }
 }
 
 #[bench]
 fn bench_03_builtin_large(b: &mut Bencher) {
-  do_bench_inserts!(b, BinaryHeap::new, 10000);
+  for size in LARGE_SIZES {
+    do_bench!(b, BinaryHeap::new, *size);
+  }
 }
 
-// ludicrous tests commented out for now.
+#[bench]
+fn bench_inserts_00_binary_tiny(b: &mut Bencher) {
+  for size in TINY_SIZES {
+    do_bench_inserts!(b, BinaryHeap::new, *size);
+  }
+}
 
-// #[bench]
-// fn bench_builtin_ludicrous(b: &mut Bencher) {
-//   bench_builtin(b, 10000000000);
-// }
+#[bench]
+fn bench_inserts_01_binary_small(b: &mut Bencher) {
+  for size in SMALL_SIZES {
+    do_bench_inserts!(b, BinaryHeap::new, *size);
+  }
+}
+
+#[bench]
+fn bench_inserts_02_binary_medium(b: &mut Bencher) {
+  for size in MEDIUM_SIZES {
+    do_bench_inserts!(b, BinaryHeap::new, *size);
+  }
+}
+
+#[bench]
+fn bench_inserts_03_builtin_large(b: &mut Bencher) {
+  for size in LARGE_SIZES {
+    do_bench_inserts!(b, BinaryHeap::new, *size);
+  }
+}
+
+#[bench]
+fn bench_removals_00_binary_tiny(b: &mut Bencher) {
+  for size in TINY_SIZES {
+    do_bench_removals!(b, BinaryHeap::new, *size);
+  }
+}
+
+#[bench]
+fn bench_removals_01_binary_small(b: &mut Bencher) {
+  for size in SMALL_SIZES {
+    do_bench_removals!(b, BinaryHeap::new, *size);
+  }
+}
+
+#[bench]
+fn bench_removals_02_binary_medium(b: &mut Bencher) {
+  for size in MEDIUM_SIZES {
+    do_bench_removals!(b, BinaryHeap::new, *size);
+  }
+}
+
+#[bench]
+fn bench_removals_03_builtin_large(b: &mut Bencher) {
+  for size in LARGE_SIZES {
+    do_bench_removals!(b, BinaryHeap::new, *size);
+  }
+}

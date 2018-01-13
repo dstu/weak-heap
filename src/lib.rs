@@ -1,4 +1,3 @@
-#![feature(duration_from_micros)]
 #![feature(swap_nonoverlapping)]
 #![feature(test)]
 

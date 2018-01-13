@@ -91,14 +91,13 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
       let mut ancestor_offset;
       while offset > 0 {
         ancestor_offset = self.distinguished_ancestor_offset(offset);
-        if self.data.get_unchecked(ancestor_offset).value >= element {
+        let ancestor_value: *const _ = &self.data.get_unchecked(ancestor_offset).value;
+        if *ancestor_value >= element {
           break;
         }
-        ptr::copy_nonoverlapping(
-          &self.data.get_unchecked(ancestor_offset).value,
-          &mut self.data.get_unchecked_mut(offset).value,
-          1);
-        self.data.get_unchecked_mut(offset).valence = !self.data.get_unchecked(offset).valence;
+        let offset_item = self.data.get_unchecked_mut(offset);
+        ptr::copy_nonoverlapping(ancestor_value, &mut offset_item.value, 1);
+        offset_item.valence = !offset_item.valence;
         offset = ancestor_offset;
       }
       ptr::write(&mut self.data.get_unchecked_mut(offset).value, element);
@@ -112,12 +111,11 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
     let next_child_offset = self.child_offset(child_offset);
     self.sift_down(next_child_offset);
     unsafe {
-      let head: *mut T = &mut self.data.get_unchecked_mut(0).value;
-      let child: *mut T = &mut self.data.get_unchecked_mut(child_offset).value;
-      if *head < *child {
-        ptr::swap_nonoverlapping(head, child, 1);
-        self.data.get_unchecked_mut(child_offset).valence =
-          !self.data.get_unchecked(child_offset).valence;
+      let head_value: *mut T = &mut self.data.get_unchecked_mut(0).value;
+      let child = &mut self.data.get_unchecked_mut(child_offset);
+      if *head_value < child.value {
+        ptr::swap_nonoverlapping(head_value, &mut child.value, 1);
+        child.valence = !child.valence;
       }
     }
   }

@@ -4,4 +4,9 @@ version = "0.1.0"
 authors = ["Donald S. Black <trurl@freeshell.org>"]
 
 [dev_dependencies]
+criterion = "0.1.2"
 rand = "0.3"
+
+[[bench]]
+name = "bench"
+harness = false

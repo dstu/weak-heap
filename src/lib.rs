@@ -1,10 +1,6 @@
 #![feature(swap_nonoverlapping)]
-#![feature(test)]
 
 #[cfg(test)] extern crate rand;
-#[cfg(test)] extern crate test;
-
-#[cfg(test)] mod bench;
 
 use std::cmp::Ord;
 use std::fmt;

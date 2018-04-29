@@ -1,0 +1,251 @@
+0c47621: With buffer and checked array accesses:
+
+test bench::bench_00_builtin_tiny   ... do_bench(BinaryHeap::new, 10) partial_ord 3.50, ord 0.00, eq 0.00, ne 0.00
+bench:         435 ns/iter (+/- 82)
+test bench::bench_00_weak_tiny      ... do_bench(WeakHeap::new, 10) partial_ord 4.00, ord 0.00, eq 0.00, ne 0.00
+bench:         597 ns/iter (+/- 28)
+test bench::bench_01_builtin_small  ... do_bench(BinaryHeap::new, 100) partial_ord 7.47, ord 0.00, eq 0.00, ne 0.00
+bench:       5,870 ns/iter (+/- 253)
+test bench::bench_01_weak_small     ... do_bench(WeakHeap::new, 100) partial_ord 8.68, ord 0.21, eq 0.00, ne 0.00
+bench:       8,636 ns/iter (+/- 247)
+test bench::bench_02_builtin_medium ... do_bench(BinaryHeap::new, 10000) partial_ord 14.28, ord 0.00, eq 0.00, ne 0.00
+bench:     986,424 ns/iter (+/- 56,702)
+test bench::bench_02_weak_medium    ... do_bench(WeakHeap::new, 10000) partial_ord 16.38, ord 0.00, eq 0.00, ne 0.00
+bench:   1,684,014 ns/iter (+/- 68,452)
+
+0c47621: With buffer and unchecked array accesses:
+
+test bench::bench_00_builtin_tiny   ... do_bench(BinaryHeap::new, 10) partial_ord 3.50, ord 0.00, eq 0.00, ne 0.00
+bench:         419 ns/iter (+/- 85)
+test bench::bench_00_weak_tiny      ... do_bench(WeakHeap::new, 10) partial_ord 4.00, ord 0.00, eq 0.00, ne 0.00
+bench:         599 ns/iter (+/- 23)
+test bench::bench_01_builtin_small  ... do_bench(BinaryHeap::new, 100) partial_ord 7.47, ord 0.00, eq 0.00, ne 0.00
+bench:       5,858 ns/iter (+/- 304)
+test bench::bench_01_weak_small     ... do_bench(WeakHeap::new, 100) partial_ord 8.68, ord 0.21, eq 0.00, ne 0.00
+bench:       8,975 ns/iter (+/- 441)
+test bench::bench_02_builtin_medium ... do_bench(BinaryHeap::new, 10000) partial_ord 14.28, ord 0.00, eq 0.00, ne 0.00
+bench:     983,200 ns/iter (+/- 32,824)
+test bench::bench_02_weak_medium    ... do_bench(WeakHeap::new, 10000) partial_ord 16.38, ord 0.00, eq 0.00, ne 0.00
+bench:   1,634,373 ns/iter (+/- 47,175)
+
+0c47621: With buffer, checked array accesses, and getting rid of EdgeValence:
+
+test bench::bench_00_builtin_tiny   ... do_bench(BinaryHeap::new, 10) partial_ord 3.50, ord 0.00, eq 0.00, ne 0.00
+bench:         417 ns/iter (+/- 20)
+test bench::bench_00_weak_tiny      ... do_bench(WeakHeap::new, 10) partial_ord 4.00, ord 0.00, eq 0.00, ne 0.00
+bench:         607 ns/iter (+/- 31)
+test bench::bench_01_builtin_small  ... do_bench(BinaryHeap::new, 100) partial_ord 7.47, ord 0.00, eq 0.00, ne 0.00
+bench:       5,870 ns/iter (+/- 189)
+test bench::bench_01_weak_small     ... do_bench(WeakHeap::new, 100) partial_ord 8.68, ord 0.21, eq 0.00, ne 0.00
+bench:       8,633 ns/iter (+/- 397)
+test bench::bench_02_builtin_medium ... do_bench(BinaryHeap::new, 10000) partial_ord 14.28, ord 0.00, eq 0.00, ne 0.00
+bench:     987,392 ns/iter (+/- 27,242)
+test bench::bench_02_weak_medium    ... do_bench(WeakHeap::new, 10000) partial_ord 16.38, ord 0.00, eq 0.00, ne 0.00
+bench:   1,659,719 ns/iter (+/- 94,762)
+
+0c47621: With buffer, checked array accesses, Using Vec<u8> instead of BitVec:
+
+test bench::bench_00_builtin_tiny   ... do_bench(BinaryHeap::new, 10) partial_ord 3.50, ord 0.00, eq 0.00, ne 0.00
+bench:         422 ns/iter (+/- 76)
+test bench::bench_00_weak_tiny      ... do_bench(WeakHeap::new, 10) partial_ord 4.00, ord 0.00, eq 0.00, ne 0.00
+bench:         558 ns/iter (+/- 134)
+test bench::bench_01_builtin_small  ... do_bench(BinaryHeap::new, 100) partial_ord 7.47, ord 0.00, eq 0.00, ne 0.00
+bench:       5,929 ns/iter (+/- 860)
+test bench::bench_01_weak_small     ... do_bench(WeakHeap::new, 100) partial_ord 8.68, ord 0.21, eq 0.00, ne 0.00
+bench:       7,775 ns/iter (+/- 416)
+test bench::bench_02_builtin_medium ... do_bench(BinaryHeap::new, 10000) partial_ord 14.28, ord 0.00, eq 0.00, ne 0.00
+bench:     986,185 ns/iter (+/- 49,403)
+test bench::bench_02_weak_medium    ... do_bench(WeakHeap::new, 10000) partial_ord 16.38, ord 0.00, eq 0.00, ne 0.00
+bench:   1,456,812 ns/iter (+/- 60,035)
+
+33b273e alone:
+
+test bench::bench_00_builtin_tiny          ... do_bench(BinaryHeap::new, 10) partial_ord 3.50, ord 0.00, eq 0.00, ne 0.00
+bench:         424 ns/iter (+/- 82)
+test bench::bench_00_weak_tiny             ... do_bench(WeakHeap::new, 10) partial_ord 5.10, ord 0.00, eq 0.00, ne 0.00
+bench:         855 ns/iter (+/- 23)
+test bench::bench_01_builtin_small         ... do_bench(BinaryHeap::new, 100) partial_ord 7.47, ord 0.00, eq 0.00, ne 0.00
+bench:       5,864 ns/iter (+/- 291)
+test bench::bench_01_weak_small            ... do_bench(WeakHeap::new, 100) partial_ord 10.48, ord 0.00, eq 0.00, ne 0.00
+bench:      10,841 ns/iter (+/- 377)
+test bench::bench_03_builtin_large         ... do_bench_inserts(BinaryHeap::new, 10000) partial_ord 2.26, ord 0.00, eq 0.00, ne 0.00
+bench:     164,831 ns/iter (+/- 8,881)
+test bench::bench_inserts_00_binary_tiny   ... do_bench_inserts(BinaryHeap::new, 10) partial_ord 1.50, ord 0.00, eq 0.00, ne 0.00
+bench:         187 ns/iter (+/- 11)
+test bench::bench_inserts_00_weak_tiny     ... do_bench_inserts(WeakHeap::new, 10) partial_ord 3.20, ord 0.00, eq 0.00, ne 0.00
+bench:         539 ns/iter (+/- 16)
+test bench::bench_inserts_01_binary_small  ... do_bench_inserts(BinaryHeap::new, 100) partial_ord 2.06, ord 0.00, eq 0.00, ne 0.00
+bench:       1,613 ns/iter (+/- 79)
+test bench::bench_inserts_01_weak_small    ... do_bench_inserts(WeakHeap::new, 100) partial_ord 4.51, ord 0.00, eq 0.00, ne 0.00
+bench:       4,708 ns/iter (+/- 85)
+test bench::bench_inserts_02_binary_medium ... do_bench_inserts(BinaryHeap::new, 10000) partial_ord 2.26, ord 0.00, eq 0.00, ne 0.00
+bench:     164,749 ns/iter (+/- 8,109)
+test bench::bench_inserts_02_weak_medium   ... do_bench_inserts(WeakHeap::new, 10000) partial_ord 4.88, ord 0.00, eq 0.00, ne 0.00
+bench:     483,956 ns/iter (+/- 15,259)
+
+33b273e: With buffer limited to 1 item:
+
+test bench::bench_00_builtin_tiny         ... do_bench(BinaryHeap::new, 10) partial_ord 3.50, ord 0.00, eq 0.00, ne 0.00
+bench:         402 ns/iter (+/- 18)
+test bench::bench_00_weak_tiny            ... do_bench(WeakHeap::new, 10) partial_ord 5.00, ord 0.00, eq 0.00, ne 0.00
+bench:         808 ns/iter (+/- 51)
+test bench::bench_01_builtin_small        ... do_bench(BinaryHeap::new, 100) partial_ord 7.47, ord 0.00, eq 0.00, ne 0.00
+bench:       5,836 ns/iter (+/- 252)
+test bench::bench_01_weak_small           ... do_bench(WeakHeap::new, 100) partial_ord 9.11, ord 0.00, eq 0.00, ne 0.00
+bench:       9,526 ns/iter (+/- 313)
+test bench::bench_inserts_00_binary_tiny  ... do_bench_inserts(BinaryHeap::new, 10) partial_ord 1.50, ord 0.00, eq 0.00, ne 0.00
+bench:         188 ns/iter (+/- 11)
+test bench::bench_inserts_00_weak_tiny    ... do_bench_inserts(WeakHeap::new, 10) partial_ord 3.20, ord 0.00, eq 0.00, ne 0.00
+bench:         501 ns/iter (+/- 17)
+test bench::bench_inserts_01_binary_small ... do_bench_inserts(BinaryHeap::new, 100) partial_ord 2.06, ord 0.00, eq 0.00, ne 0.00
+bench:       1,611 ns/iter (+/- 66)
+test bench::bench_inserts_01_weak_small   ... do_bench_inserts(WeakHeap::new, 100) partial_ord 3.96, ord 0.00, eq 0.00, ne 0.00
+bench:       4,407 ns/iter (+/- 184)
+
+2d1892f:
+
+do_bench(BinaryHeap::new, 10) partial_ord 3.50, ord 0.00, eq 0.00, ne 0.00
+bench:         414 ns/iter (+/- 10)
+test bench::bench_00_weak_tiny              ... 
+do_bench(WeakHeap::new, 10) partial_ord 3.30, ord 0.00, eq 0.00, ne 0.00
+bench:         406 ns/iter (+/- 16)
+test bench::bench_01_builtin_small          ... 
+do_bench(BinaryHeap::new, 100) partial_ord 7.47, ord 0.00, eq 0.00, ne 0.00
+bench:       5,831 ns/iter (+/- 111)
+test bench::bench_01_weak_small             ... 
+do_bench(WeakHeap::new, 100) partial_ord 6.91, ord 0.00, eq 0.00, ne 0.00
+bench:       5,919 ns/iter (+/- 163)
+test bench::bench_02_builtin_medium         ... 
+do_bench(BinaryHeap::new, 10000) partial_ord 14.28, ord 0.00, eq 0.00, ne 0.00
+bench:     979,644 ns/iter (+/- 144,600)
+test bench::bench_02_weak_medium            ... 
+do_bench(WeakHeap::new, 10000) partial_ord 13.72, ord 0.00, eq 0.00, ne 0.00
+bench:   1,198,391 ns/iter (+/- 53,240)
+test bench::bench_03_builtin_large          ... 
+do_bench(BinaryHeap::new, 1000000) partial_ord 20.92, ord 0.00, eq 0.00, ne 0.00
+bench: 141,277,805 ns/iter (+/- 1,215,739)
+test bench::bench_03_weak_large             ... 
+do_bench(WeakHeap::new, 1000000) partial_ord 20.37, ord 0.00, eq 0.00, ne 0.00
+bench: 219,369,714 ns/iter (+/- 4,304,243)
+test bench::bench_inserts_00_binary_tiny    ... 
+do_bench_inserts(BinaryHeap::new, 10) partial_ord 1.50, ord 0.00, eq 0.00, ne 0.00
+bench:         186 ns/iter (+/- 8)
+test bench::bench_inserts_00_weak_tiny      ... 
+do_bench_inserts(WeakHeap::new, 10) partial_ord 1.50, ord 0.00, eq 0.00, ne 0.00
+bench:         181 ns/iter (+/- 11)
+test bench::bench_inserts_01_binary_small   ... 
+do_bench_inserts(BinaryHeap::new, 100) partial_ord 2.06, ord 0.00, eq 0.00, ne 0.00
+bench:       1,598 ns/iter (+/- 41)
+test bench::bench_inserts_01_weak_small     ... 
+do_bench_inserts(WeakHeap::new, 100) partial_ord 1.80, ord 0.00, eq 0.00, ne 0.00
+bench:       1,401 ns/iter (+/- 40)
+test bench::bench_inserts_02_binary_medium  ... 
+do_bench_inserts(BinaryHeap::new, 10000) partial_ord 2.26, ord 0.00, eq 0.00, ne 0.00
+bench:     164,366 ns/iter (+/- 3,273)
+test bench::bench_inserts_02_weak_medium    ... 
+do_bench_inserts(WeakHeap::new, 10000) partial_ord 1.87, ord 0.00, eq 0.00, ne 0.00
+bench:     161,342 ns/iter (+/- 4,711)
+test bench::bench_inserts_03_builtin_large  ... 
+do_bench_inserts(BinaryHeap::new, 1000000) partial_ord 2.28, ord 0.00, eq 0.00, ne 0.00
+bench:  16,855,209 ns/iter (+/- 355,309)
+test bench::bench_inserts_03_weak_large     ... 
+do_bench_inserts(WeakHeap::new, 1000000) partial_ord 1.89, ord 0.00, eq 0.00, ne 0.00
+bench:  17,808,155 ns/iter (+/- 358,958)
+test bench::bench_removals_00_binary_tiny   ... 
+do_bench_removals(BinaryHeap::new, 10) partial_ord 2.00, ord 0.00, eq 0.00, ne 0.00
+bench:         401 ns/iter (+/- 12)
+test bench::bench_removals_00_weak_tiny     ... 
+do_bench_removals(WeakHeap::new, 10) partial_ord 1.80, ord 0.00, eq 0.00, ne 0.00
+bench:         407 ns/iter (+/- 12)
+test bench::bench_removals_01_binary_small  ... 
+do_bench_removals(BinaryHeap::new, 100) partial_ord 5.41, ord 0.00, eq 0.00, ne 0.00
+bench:       5,848 ns/iter (+/- 284)
+test bench::bench_removals_01_weak_small    ... 
+do_bench_removals(WeakHeap::new, 100) partial_ord 5.11, ord 0.00, eq 0.00, ne 0.00
+bench:       5,891 ns/iter (+/- 270)
+test bench::bench_removals_02_binary_medium ... 
+do_bench_removals(BinaryHeap::new, 10000) partial_ord 12.02, ord 0.00, eq 0.00, ne 0.00
+bench:   1,021,835 ns/iter (+/- 51,422)
+test bench::bench_removals_02_weak_medium   ... 
+do_bench_removals(WeakHeap::new, 10000) partial_ord 11.85, ord 0.00, eq 0.00, ne 0.00
+bench:   1,192,726 ns/iter (+/- 51,935)
+test bench::bench_removals_03_builtin_large ... 
+do_bench_removals(BinaryHeap::new, 1000000) partial_ord 18.64, ord 0.00, eq 0.00, ne 0.00
+bench: 141,389,253 ns/iter (+/- 1,499,937)
+test bench::bench_removals_03_weak_large    ... 
+do_bench_removals(WeakHeap::new, 1000000) partial_ord 18.48, ord 0.00, eq 0.00, ne 0.00
+bench: 222,257,924 ns/iter (+/- 18,143,373)
+
+2d1892f with unchecked array accesses taken out:
+
+do_bench(BinaryHeap::new, 10) partial_ord 3.50, ord 0.00, eq 0.00, ne 0.00
+bench:         397 ns/iter (+/- 39)
+test bench::bench_00_weak_tiny              ... 
+do_bench(WeakHeap::new, 10) partial_ord 3.30, ord 0.00, eq 0.00, ne 0.00
+bench:         415 ns/iter (+/- 7)
+test bench::bench_01_builtin_small          ... 
+do_bench(BinaryHeap::new, 100) partial_ord 7.47, ord 0.00, eq 0.00, ne 0.00
+bench:       5,772 ns/iter (+/- 90)
+test bench::bench_01_weak_small             ... 
+do_bench(WeakHeap::new, 100) partial_ord 6.91, ord 0.00, eq 0.00, ne 0.00
+bench:       6,023 ns/iter (+/- 185)
+test bench::bench_02_builtin_medium         ... 
+do_bench(BinaryHeap::new, 10000) partial_ord 14.28, ord 0.00, eq 0.00, ne 0.00
+bench:     979,633 ns/iter (+/- 14,713)
+test bench::bench_02_weak_medium            ... 
+do_bench(WeakHeap::new, 10000) partial_ord 13.72, ord 0.00, eq 0.00, ne 0.00
+bench:   1,209,471 ns/iter (+/- 22,632)
+test bench::bench_03_builtin_large          ... 
+do_bench(BinaryHeap::new, 1000000) partial_ord 20.92, ord 0.00, eq 0.00, ne 0.00
+bench: 141,696,258 ns/iter (+/- 3,304,144)
+test bench::bench_03_weak_large             ... 
+do_bench(WeakHeap::new, 1000000) partial_ord 20.37, ord 0.00, eq 0.00, ne 0.00
+bench: 223,526,691 ns/iter (+/- 6,069,002)
+test bench::bench_inserts_00_binary_tiny    ... 
+do_bench_inserts(BinaryHeap::new, 10) partial_ord 1.50, ord 0.00, eq 0.00, ne 0.00
+bench:         185 ns/iter (+/- 6)
+test bench::bench_inserts_00_weak_tiny      ... 
+do_bench_inserts(WeakHeap::new, 10) partial_ord 1.50, ord 0.00, eq 0.00, ne 0.00
+bench:         207 ns/iter (+/- 19)
+test bench::bench_inserts_01_binary_small   ... 
+do_bench_inserts(BinaryHeap::new, 100) partial_ord 2.06, ord 0.00, eq 0.00, ne 0.00
+bench:       1,595 ns/iter (+/- 33)
+test bench::bench_inserts_01_weak_small     ... 
+do_bench_inserts(WeakHeap::new, 100) partial_ord 1.80, ord 0.00, eq 0.00, ne 0.00
+bench:       1,573 ns/iter (+/- 89)
+test bench::bench_inserts_02_binary_medium  ... 
+do_bench_inserts(BinaryHeap::new, 10000) partial_ord 2.26, ord 0.00, eq 0.00, ne 0.00
+bench:     164,727 ns/iter (+/- 9,036)
+test bench::bench_inserts_02_weak_medium    ... 
+do_bench_inserts(WeakHeap::new, 10000) partial_ord 1.87, ord 0.00, eq 0.00, ne 0.00
+bench:     189,189 ns/iter (+/- 7,620)
+test bench::bench_inserts_03_builtin_large  ... 
+do_bench_inserts(BinaryHeap::new, 1000000) partial_ord 2.28, ord 0.00, eq 0.00, ne 0.00
+bench:  16,877,990 ns/iter (+/- 335,319)
+test bench::bench_inserts_03_weak_large     ... 
+do_bench_inserts(WeakHeap::new, 1000000) partial_ord 1.89, ord 0.00, eq 0.00, ne 0.00
+bench:  20,398,170 ns/iter (+/- 553,546)
+test bench::bench_removals_00_binary_tiny   ... 
+do_bench_removals(BinaryHeap::new, 10) partial_ord 2.00, ord 0.00, eq 0.00, ne 0.00
+bench:         417 ns/iter (+/- 21)
+test bench::bench_removals_00_weak_tiny     ... 
+do_bench_removals(WeakHeap::new, 10) partial_ord 1.80, ord 0.00, eq 0.00, ne 0.00
+bench:         429 ns/iter (+/- 21)
+test bench::bench_removals_01_binary_small  ... 
+do_bench_removals(BinaryHeap::new, 100) partial_ord 5.41, ord 0.00, eq 0.00, ne 0.00
+bench:       5,794 ns/iter (+/- 284)
+test bench::bench_removals_01_weak_small    ... 
+do_bench_removals(WeakHeap::new, 100) partial_ord 5.11, ord 0.00, eq 0.00, ne 0.00
+bench:       6,051 ns/iter (+/- 109)
+test bench::bench_removals_02_binary_medium ... 
+do_bench_removals(BinaryHeap::new, 10000) partial_ord 12.02, ord 0.00, eq 0.00, ne 0.00
+bench:     979,375 ns/iter (+/- 13,337)
+test bench::bench_removals_02_weak_medium   ... 
+do_bench_removals(WeakHeap::new, 10000) partial_ord 11.85, ord 0.00, eq 0.00, ne 0.00
+bench:   1,230,659 ns/iter (+/- 56,901)
+test bench::bench_removals_03_builtin_large ... 
+do_bench_removals(BinaryHeap::new, 1000000) partial_ord 18.64, ord 0.00, eq 0.00, ne 0.00
+bench: 141,644,880 ns/iter (+/- 3,131,441)
+test bench::bench_removals_03_weak_large    ... 
+do_bench_removals(WeakHeap::new, 1000000) partial_ord 18.48, ord 0.00, eq 0.00, ne 0.00
+bench: 224,823,005 ns/iter (+/- 4,438,114)

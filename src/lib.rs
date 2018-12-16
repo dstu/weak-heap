@@ -115,7 +115,7 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
 #[cfg(test)]
 mod tests {
   use super::WeakHeap;
-  #[cfg(test)] use rand::{Rng, SeedableRng, StdRng};
+  use rand::{Rng, SeedableRng, StdRng};
 
   pub fn get_values(size: usize) -> Vec<i32> {
     let seed: &[_] = &[1, 2, 3, 4];

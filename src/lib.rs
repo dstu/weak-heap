@@ -1,7 +1,3 @@
-#![feature(swap_nonoverlapping)]
-
-#[cfg(test)] extern crate rand;
-
 use std::cmp::Ord;
 use std::fmt;
 use std::ptr;
@@ -119,7 +115,7 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
 #[cfg(test)]
 mod tests {
   use super::WeakHeap;
-  use rand::{Rng, SeedableRng, StdRng};
+  #[cfg(test)] use rand::{Rng, SeedableRng, StdRng};
 
   pub fn get_values(size: usize) -> Vec<i32> {
     let seed: &[_] = &[1, 2, 3, 4];

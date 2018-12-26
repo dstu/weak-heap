@@ -1,43 +1,99 @@
+//! This crate provides an implementation of the [weak
+//! heap](https://en.wikipedia.org/wiki/Weak_heap), a variant heap data
+//! structure.
+//!
+//! ## Runtime costs
+//!
+//! Nominal operation time bounds are comparable to those of the more popular
+//! binary heap:
+//! * find-min: O(1)
+//! * delete-min: O(log n)
+//! * insert: O(log n)
+//!
+//! In a more realistic model of computation that does more than count the
+//! number of comparisons being made, the runtime cost of this heap's operations
+//! requires a more nuanced analysis.
+//!
+//! In simple benchmarks, the time it takes to perform bulk operations on this
+//! heap when it contains a simple data type that it is very cheap to compare
+//! (like integers) has greater expectation and variance than a comparable set
+//! of operations on `std::collections::BinaryHeap`. Once a weak heap reaches a
+//! modest size, however, the number of comparisons that are required to perform
+//! an operation is less than the number of comparisons that a binary heap
+//! makes. If the cost of making a comparison truly dominates running time, then
+//! `WeakHeap` may be faster than `BinaryHeap` in practice.
+
 use std::cmp::Ord;
 use std::fmt;
 use std::ptr;
 
+/// An entry in the heap, consisting of a bit that indicates whether the roles
+/// of its left and right children are swapped, and the actual value being
+/// stored in the heap.
 #[derive(Debug)]
 struct HeapEntry<T: fmt::Debug> {
-  valence: bool,
+  /// The actual value at this heap entry.
   value: T,
+  /// If `true`, then siblings of this heap entry (when viewing the heap as an
+  /// N-ary tree) are in its left-hand subtree (when viewing the heap as a
+  /// binary tree), and its children are in its right-hand subtree. If `false`,
+  /// the left- and right-hand subtrees are flipped.
+  valence: bool,
 }
 
+/// A weak heap data structure. This implementation is a max-heap.
+///
+/// ```rust
+/// # use weak_heap::WeakHeap;
+/// # fn main() {
+/// let mut heap: WeakHeap<i32> = WeakHeap::new();
+/// heap.push(5);
+/// heap.push(10);
+/// heap.push(7);
+/// let mut ordered = Vec::new();
+/// while let Some(n) = heap.pop() {
+///   ordered.push(n);
+/// }
+/// assert_eq!(ordered, vec![10, 7, 5]);
+/// # }
+/// ```
 #[derive(Debug)]
 pub struct WeakHeap<T: fmt::Debug + Ord> {
   data: Vec<HeapEntry<T>>,
 }
 
 impl<T: fmt::Debug + Ord> WeakHeap<T> {
+  /// Creates a new heap with a default capacity.
   pub fn new() -> Self {
     WeakHeap {
       data: Vec::new(),
     }
   }
 
+  /// Creates a new heap with capacity for at least `cap` elements.
   pub fn with_capacity(cap: usize) -> Self {
     WeakHeap {
       data: Vec::with_capacity(cap),
     }
   }
 
+  /// Returns the number of elements in the heap.
   pub fn len(&self) -> usize {
     self.data.len()
   }
 
+  /// Returns `true` iff the heap is empty.
   pub fn is_empty(&self) -> bool {
     self.data.is_empty()
   }
 
+  /// Returns a reference to the top element on the heap, or `None` if the heap
+  /// is empty.
   pub fn peek(&self) -> Option<&T> {
     self.data.first().map(|x| &x.value)
   }
 
+  /// Pushes `value` onto the heap.
   pub fn push(&mut self, value: T) {
     let offset = self.len();
     self.data.push(HeapEntry { valence: false, value: value, });
@@ -45,6 +101,8 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
     self.sift_up(offset);
   }
 
+  /// Removes the top element from the heap and returns it, or returns `None` if
+  /// the heap is empty.
   pub fn pop(&mut self) -> Option<T> {
     if self.is_empty() {
       None
@@ -58,12 +116,17 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
     }
   }
 
+  /// Returns the offset into `self.data` for the child of the element at
+  /// `offset`.
   fn child_offset(&self, offset: usize) -> usize {
     offset.checked_mul(2)
       .and_then(|n| n.checked_add(unsafe { self.data.get_unchecked(offset).valence } as usize))
       .expect("child offset computation overflow")
   }
 
+  /// Returns the offset into `self.data` for the distinguished ancestor of the
+  /// element at `offset`. The distinguished ancestor of an element is its
+  /// immediate parent when viewing the heap as an N-ary tree.
   fn distinguished_ancestor_offset(&self, mut offset: usize) -> usize {
     debug_assert!(offset > 0);
     let mut parent_offset = offset / 2;
@@ -76,6 +139,10 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
     parent_offset
   }
 
+  /// Sifts the element at `offset` up in the heap so that the heap invariants
+  /// are satisfied. This is done by repeatedly swapping an item with its
+  /// distinguished ancestor until its distinguished ancestor is greater than it
+  /// is.
   fn sift_up(&mut self, mut offset: usize) {
     unsafe {
       let element = ptr::read(&self.data.get_unchecked(offset).value);
@@ -95,6 +162,15 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
     }
   }
 
+  /// Sifts the top of the heap down so that the heap invariants are
+  /// satisfied. This is done by recursively swapping descendants of the element
+  /// at `child_offset` with the top of the heap (starting with a descenant at
+  /// the lowest level of the tree possible and proceeding up then through each
+  /// preceding level, until finally the element at `child_offset` is compared
+  /// against).
+  ///
+  /// When this recursion begins, the top of the heap may be in violation of the
+  /// heap invariant (i.e., it may be less than one of its children).
   fn sift_down(&mut self, child_offset: usize) {
     if child_offset >= self.data.len() {
       return;

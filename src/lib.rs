@@ -27,6 +27,8 @@ use std::cmp::Ord;
 use std::fmt;
 use std::ptr;
 
+#[cfg(feature = "benchmark-definitions")] pub mod benches;
+
 /// An entry in the heap, consisting of a bit that indicates whether the roles
 /// of its left and right children are swapped, and the actual value being
 /// stored in the heap.
@@ -191,10 +193,11 @@ impl<T: fmt::Debug + Ord> WeakHeap<T> {
 #[cfg(test)]
 mod tests {
   use super::WeakHeap;
-  use rand::{Rng, SeedableRng, StdRng};
+  use rand::rngs::StdRng;
+  use rand::{Rng, SeedableRng};
 
   pub fn get_values(size: usize) -> Vec<i32> {
-    let seed: &[_] = &[1, 2, 3, 4];
+    let seed: [u8; 32] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
     let mut rng: StdRng = SeedableRng::from_seed(seed);
     (0..size).map(|_| rng.gen::<i32>()).map(|x| x.into()).collect()
   }

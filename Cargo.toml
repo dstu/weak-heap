@@ -5,9 +5,69 @@ authors = ["Donald S. Black <trurl@freeshell.org>"]
 edition = "2018"
 
 [dev_dependencies]
-criterion = "0.1.2"
-rand = "0.3"
+rand = "0.6.1"
+
+[features]
+default = []
+benchmark-definitions = ["criterion", "rand", "num-bigint"]
+
+# Build with "cargo bench --features=benchmark-definitions".
+[profile.bench]
+opt-level = 3
+debug = false
+rpath = false
+debug-assertions = false
+lto = true
+
+[dependencies.criterion]
+version = "0.2.4"
+optional = true
+
+[dependencies.rand]
+version = "0.6.1"
+optional = true
+
+[dependencies.num-bigint]
+version = "0.2.2"
+optional = true
+features = ["rand"]
 
 [[bench]]
-name = "bench"
+name = "tiny-i32-sort-binary"
+path = "benches/tiny_i32_sort_binary.rs"
 harness = false
+
+[[bench]]
+name = "tiny-i32-sort-weak"
+path = "benches/tiny_i32_sort_weak.rs"
+harness = false
+
+[[bench]]
+name = "tiny-i128-sort-binary"
+path = "benches/tiny_i128_sort_binary.rs"
+harness = false
+
+[[bench]]
+name = "tiny-i128-sort-weak"
+path = "benches/tiny_i128_sort_weak.rs"
+harness = false
+
+[[bench]]
+name = "tiny-u32768-sort-binary"
+path = "benches/tiny_u32768_sort_binary.rs"
+harness = false
+
+[[bench]]
+name = "tiny-u32768-sort-weak"
+path = "benches/tiny_u32768_sort_weak.rs"
+harness = false
+
+# [[bench]]
+# name = "small"
+# path = "benches/small.rs"
+# harness = false
+
+# [[bench]]
+# name = "medium"
+# path = "benches/medium.rs"
+# harness = false

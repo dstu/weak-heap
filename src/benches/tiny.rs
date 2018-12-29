@@ -43,17 +43,3 @@ fn bench_u32768_sort_weak(c: &mut Criterion) {
 }
 
 criterion_group!(u32768_sort_weak, bench_u32768_sort_weak);
-
-// fn bench_comparison_counted_i32_sort_binary(c: &mut Criterion) {
-//   do_comparison_counted_i32_bench!(c, BinaryHeap::new, sizes())
-// }
-
-// criterion_group!(comparison_counted_i32_sort_binary,
-//                  bench_comparison_counted_i32_sort_binary);
-
-// fn bench_comparison_counted_i32_sort_weak(c: &mut Criterion) {
-//   do_comparison_counted_i32_bench!(c, BinaryHeap::new, sizes())
-// }
-
-// criterion_group!(comparison_counted_i32_sort_weak,
-//                  bench_comparison_counted_i32_sort_weak);

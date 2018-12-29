@@ -254,6 +254,6 @@ macro_rules! do_bench {
 }
 
 pub mod tiny;
-// pub mod small;
-// pub mod medium;
-// pub mod large;
+pub mod small;
+pub mod medium;
+pub mod large;

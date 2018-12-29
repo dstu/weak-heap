@@ -62,12 +62,92 @@ name = "tiny-u32768-sort-weak"
 path = "benches/tiny_u32768_sort_weak.rs"
 harness = false
 
+[[bench]]
+name = "small-i32-sort-binary"
+path = "benches/small_i32_sort_binary.rs"
+harness = false
+
+[[bench]]
+name = "small-i32-sort-weak"
+path = "benches/small_i32_sort_weak.rs"
+harness = false
+
+[[bench]]
+name = "small-i128-sort-binary"
+path = "benches/small_i128_sort_binary.rs"
+harness = false
+
+[[bench]]
+name = "small-i128-sort-weak"
+path = "benches/small_i128_sort_weak.rs"
+harness = false
+
+[[bench]]
+name = "small-u32768-sort-binary"
+path = "benches/small_u32768_sort_binary.rs"
+harness = false
+
+[[bench]]
+name = "small-u32768-sort-weak"
+path = "benches/small_u32768_sort_weak.rs"
+harness = false
+
+[[bench]]
+name = "medium-i32-sort-binary"
+path = "benches/medium_i32_sort_binary.rs"
+harness = false
+
+[[bench]]
+name = "medium-i32-sort-weak"
+path = "benches/medium_i32_sort_weak.rs"
+harness = false
+
+[[bench]]
+name = "medium-i128-sort-binary"
+path = "benches/medium_i128_sort_binary.rs"
+harness = false
+
+[[bench]]
+name = "medium-i128-sort-weak"
+path = "benches/medium_i128_sort_weak.rs"
+harness = false
+
 # [[bench]]
-# name = "small"
-# path = "benches/small.rs"
+# name = "medium-u32768-sort-binary"
+# path = "benches/medium_u32768_sort_binary.rs"
 # harness = false
 
 # [[bench]]
-# name = "medium"
-# path = "benches/medium.rs"
+# name = "medium-u32768-sort-weak"
+# path = "benches/medium_u32768_sort_weak.rs"
+# harness = false
+
+[[bench]]
+name = "large-i32-sort-binary"
+path = "benches/large_i32_sort_binary.rs"
+harness = false
+
+[[bench]]
+name = "large-i32-sort-weak"
+path = "benches/large_i32_sort_weak.rs"
+harness = false
+
+[[bench]]
+name = "large-i128-sort-binary"
+path = "benches/large_i128_sort_binary.rs"
+harness = false
+
+[[bench]]
+name = "large-i128-sort-weak"
+path = "benches/large_i128_sort_weak.rs"
+harness = false
+
+# [[bench]]
+# name = "large-u32768-sort-binary"
+# path = "benches/large_u32768_sort_binary.rs"
+# harness = false
+
+# [[bench]]
+# name = "large-u32768-sort-weak"
+# path = "benches/large_u32768_sort_weak.rs"
 # harness = false
